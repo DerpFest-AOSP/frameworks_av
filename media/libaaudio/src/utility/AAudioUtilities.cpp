@@ -278,6 +278,8 @@ audio_flags_mask_t AAudio_computeAudioFlagsMask(
             // flagsMask is not modified
     }
 
+    flagsMask = AUDIO_FLAG_NONE;
+
     switch (spatializationBehavior) {
         case AAUDIO_UNSPECIFIED:
         case AAUDIO_SPATIALIZATION_BEHAVIOR_AUTO:
