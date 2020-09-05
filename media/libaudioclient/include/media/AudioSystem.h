@@ -53,6 +53,7 @@ typedef void (*audio_session_callback)(int event,
 class IAudioFlinger;
 class IAudioPolicyService;
 class String8;
+class AppTrackData;
 
 class AudioSystem
 {
@@ -518,6 +519,10 @@ public:
                                               audio_port_handle_t portId);
 
     static audio_port_handle_t getDeviceIdForIo(audio_io_handle_t audioIo);
+
+    static status_t setAppVolume(const String8& packageName, const float value);
+    static status_t setAppMute(const String8& packageName, const bool value);
+    static status_t listAppTrackDatas(unsigned int *num, AppTrackData *vols);
 
 private:
 
