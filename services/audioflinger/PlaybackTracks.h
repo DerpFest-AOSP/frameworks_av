@@ -278,8 +278,6 @@ protected:
     };
     sp<AudioVibrationController> mAudioVibrationController;
     sp<os::ExternalVibration>    mExternalVibration;
-    /** How many frames should be in the buffer before the track is considered ready */
-    const size_t        mFrameCountToBeReady;
 
 private:
     void                interceptBuffer(const AudioBufferProvider::Buffer& buffer);
