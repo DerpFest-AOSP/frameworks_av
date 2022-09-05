@@ -541,6 +541,10 @@ public:
 
     virtual void setTracksInternalMute(std::map<audio_port_handle_t, bool>* tracksInternalMute)
             EXCLUDES_ThreadBase_Mutex = 0;
+
+    virtual status_t setAppVolume(const String8& packageName, const float value) = 0;
+    virtual status_t setAppMute(const String8& packageName, const bool muted) = 0;
+    virtual void listAppVolumes(std::set<media::AppVolume> &container) = 0;
 };
 
 class IAfDirectOutputThread : public virtual IAfPlaybackThread {
