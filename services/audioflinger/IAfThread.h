@@ -529,6 +529,10 @@ public:
     virtual const std::atomic<int64_t>& framesWritten() const = 0;
 
     virtual bool usesHwAvSync() const = 0;
+
+    virtual status_t setAppVolume(const String8& packageName, const float value) = 0;
+    virtual status_t setAppMute(const String8& packageName, const bool muted) = 0;
+    virtual void listAppVolumes(std::set<media::AppVolume> &container) = 0;
 };
 
 class IAfDirectOutputThread : public virtual IAfPlaybackThread {
