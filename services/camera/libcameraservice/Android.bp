@@ -40,6 +40,7 @@ cc_library_shared {
     defaults: [
         "uses_oplus_camera_defaults",
         "uses_nothing_camera_defaults",
+        "includes_miui_camera",
     ],
 
     // Camera service source
