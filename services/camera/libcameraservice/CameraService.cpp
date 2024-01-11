@@ -36,6 +36,7 @@
 #include <aidl/AidlCameraService.h>
 #include <android-base/macros.h>
 #include <android-base/parseint.h>
+#include <android-base/properties.h>
 #include <android-base/stringprintf.h>
 #include <android/permission/PermissionChecker.h>
 #include <binder/ActivityManager.h>
@@ -91,6 +92,7 @@ namespace {
 
 namespace android {
 
+using base::SetProperty;
 using base::StringPrintf;
 using binder::Status;
 using namespace camera3;
@@ -716,13 +718,10 @@ static bool hasPermissionsForSystemCamera(int callingPid, int callingUid) {
     AttributionSourceState attributionSource{};
     attributionSource.pid = callingPid;
     attributionSource.uid = callingUid;
-    bool checkPermissionForSystemCamera = permissionChecker.checkPermissionForPreflight(
-            sSystemCameraPermission, attributionSource, String16(), AppOpsManager::OP_NONE)
-            != permission::PermissionChecker::PERMISSION_HARD_DENIED;
     bool checkPermissionForCamera = permissionChecker.checkPermissionForPreflight(
             sCameraPermission, attributionSource, String16(), AppOpsManager::OP_NONE)
             != permission::PermissionChecker::PERMISSION_HARD_DENIED;
-    return checkPermissionForSystemCamera && checkPermissionForCamera;
+    return checkPermissionForCamera;
 }
 
 Status CameraService::getNumberOfCameras(int32_t type, int32_t* numCameras) {
@@ -1633,6 +1632,10 @@ void CameraService::finishConnectLocked(const sp<BasicClient>& client,
                     oomScoreOffset, systemNativeClient);
     auto evicted = mActiveClientManager.addAndEvict(clientDescriptor);
 
+    if (strcmp(String8(client->getPackageName()).string(), "com.android.camera") == 0) {
+        evicted.clear();
+    }
+
     logConnected(desc->getKey(), static_cast<int>(desc->getOwnerId()),
             String8(client->getPackageName()));
 
@@ -1742,6 +1745,9 @@ status_t CameraService::handleEvictionsLocked(const String8& cameraId, int clien
         // Find clients that would be evicted
         auto evicted = mActiveClientManager.wouldEvict(clientDescriptor);
 
+        if (strcmp(String8(packageName).string(), "com.android.camera") == 0) {
+            evicted.clear();
+        }
         // If the incoming client was 'evicted,' higher priority clients have the camera in the
         // background, so we cannot do evictions
         if (std::find(evicted.begin(), evicted.end(), clientDescriptor) != evicted.end()) {
@@ -3326,7 +3332,8 @@ bool CameraService::evictClientIdByRemote(const wp<IBinder>& remote) {
                 ret = true;
             }
         }
-
+        //clear the evicted client list before acquring service lock again.
+        evicted.clear();
         // Reacquire mServiceLock
         mServiceLock.lock();
 
@@ -3890,6 +3897,17 @@ status_t CameraService::BasicClient::startCameraOps() {
     }
 
     mOpsActive = true;
+
+#ifdef USES_MIUI_CAMERA
+    // Configure miui camera mode
+    if (strcmp(String8(mClientPackageName).string(), "com.android.camera") == 0) {
+        SetProperty("sys.camera.miui.apk", "1");
+        ALOGI("Enabling miui camera mode");
+    } else {
+        SetProperty("sys.camera.miui.apk", "0");
+        ALOGI("Disabling miui camera mode");
+    }
+#endif
 
     // Transition device availability listeners from PRESENT -> NOT_AVAILABLE
     sCameraService->updateStatus(StatusInternal::NOT_AVAILABLE, mCameraIdStr);

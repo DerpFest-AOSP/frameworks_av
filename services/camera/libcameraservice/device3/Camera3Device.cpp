@@ -2413,6 +2413,42 @@ status_t Camera3Device::configureStreamsLocked(int operatingMode,
         return BAD_VALUE;
     }
 
+#ifdef INCLUDES_MIUI_CAMERA
+    {
+        sp<VendorTagDescriptor> vTags =
+            VendorTagDescriptor::getGlobalVendorTagDescriptor();
+        if ((nullptr == vTags.get() || 0 >= vTags->getTagCount())) {
+            sp<VendorTagDescriptorCache> cache =
+            VendorTagDescriptorCache::getGlobalVendorTagCache();
+            if (cache.get()) {
+                const camera_metadata_t *metaBuffer = mSessionParams.getAndLock();
+                metadata_vendor_id_t vendorId = get_camera_metadata_vendor_id(metaBuffer);
+                mSessionParams.unlock(metaBuffer);
+                cache->getVendorTagDescriptor(vendorId, &vTags);
+            }
+        }
+
+        char tagName[] = "com.xiaomi.sessionparams.clientName";
+        char miAppName[] = "com.android.camera";
+        uint32_t tag = 0;
+        status_t result = mSessionParams.getTagFromName(tagName, vTags.get(), &tag);
+        camera_metadata_entry_t e;
+        bool isValidTag = false;
+        if (result == OK) {
+            e = mSessionParams.find(tag);
+            if(e.count) {
+                isValidTag = true;
+                ALOGV("%s %d [DEBUG] clientname %s", __FUNCTION__, __LINE__, e.data.u8);
+            }
+        }
+        if (isValidTag && !strcmp(miAppName, (const char *)e.data.u8)) {
+            ALOGV("%s %d Mi app not set fold", __FUNCTION__, __LINE__);
+        } else {
+            ALOGV("%s %d Not Mi app set fold", __FUNCTION__, __LINE__);
+        }
+    }
+#endif
+
     bool isConstrainedHighSpeed =
             CAMERA_STREAM_CONFIGURATION_CONSTRAINED_HIGH_SPEED_MODE == operatingMode;
 
@@ -3264,9 +3300,15 @@ status_t Camera3Device::RequestThread::clear(
 
 status_t Camera3Device::RequestThread::flush() {
     ATRACE_CALL();
+    status_t flush_status;
     Mutex::Autolock l(mFlushLock);
 
-    return mInterface->flush();
+    flush_status = mInterface->flush();
+    // We have completed flush, signal RequestThread::waitForNextRequestLocked() to no longer wait for
+    // new requests
+    mRequestSignal.signal();
+
+    return flush_status;
 }
 
 void Camera3Device::RequestThread::setPaused(bool paused) {

@@ -811,7 +811,7 @@ bool GraphicBufferSource::calculateCodecTimestamp_l(
 
     if (mCaptureFps > 0.
             && (mFps > 2 * mCaptureFps
-            || mCaptureFps > 2 * mFps)) {
+            || mCaptureFps > mFps)) {
         // Time lapse or slow motion mode
         if (mPrevCaptureUs < 0LL) {
             // first capture
@@ -1218,6 +1218,24 @@ status_t GraphicBufferSource::configure(
     }
 
     return OK;
+}
+
+// Legacy compat
+status_t GraphicBufferSource::configure(
+        const sp<ComponentWrapper>& component,
+        int32_t dataSpace,
+        int32_t bufferCount,
+        uint32_t frameWidth,
+        uint32_t frameHeight,
+        uint32_t consumerUsage) {
+    
+    return GraphicBufferSource::configure(
+        component,
+        dataSpace,
+        bufferCount,
+        frameWidth,
+        frameHeight,
+        (uint64_t) consumerUsage);
 }
 
 status_t GraphicBufferSource::setSuspend(bool suspend, int64_t suspendStartTimeUs) {
