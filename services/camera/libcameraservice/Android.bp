@@ -125,6 +125,7 @@ cc_library {
 
     defaults: [
         "libcameraservice_deps",
+        "libcameraservice_ext_lib_defaults"
     ],
     // Camera service source
 
@@ -136,6 +137,7 @@ cc_library {
         "common/CameraDeviceBase.cpp",
         "common/CameraOfflineSessionBase.cpp",
         "common/CameraProviderManager.cpp",
+        "common/CameraProviderExtension.cpp",
         "common/FrameProcessorBase.cpp",
         "common/hidl/HidlProviderInfo.cpp",
         "common/aidl/AidlProviderInfo.cpp",
@@ -282,3 +284,12 @@ cc_library_static {
         "-Wno-ignored-qualifiers",
     ],
 }
+
+cc_library_static {
+    name: "libcameraservice_ext_lib",
+    srcs: [
+        "common/CameraProviderExtension.cpp",
+    ],
+    export_include_dirs: ["."],
+}
+
