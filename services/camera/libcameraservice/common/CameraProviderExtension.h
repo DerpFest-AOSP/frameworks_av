@@ -17,7 +17,9 @@
 #include <stdint.h>
 
 extern bool supportsTorchStrengthControlExt();
+extern bool supportsSetTorchModeExt();
 extern int32_t getTorchDefaultStrengthLevelExt();
 extern int32_t getTorchMaxStrengthLevelExt();
 extern int32_t getTorchStrengthLevelExt();
 extern void setTorchStrengthLevelExt(int32_t torchStrength);
+extern void setTorchModeExt(bool enabled);
