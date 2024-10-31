@@ -381,22 +381,24 @@ status_t ProviderFlashControl::turnOnTorchWithStrengthLevel(const std::string& c
     // Use the extension only for the camera that has flash unit
     // Otherwise fallback to the default impl.
     if (supportsTorchStrengthControlExt() && mProviderManager->hasFlashUnit(cameraId)) {
-        if (supportsSetTorchModeExt()) {
-            // If we aren't using the Camera HAL to set the
-            // torch mode initially, we need to invoke
-            // the callback ourselves.
-            TorchModeStatus newState = (torchStrength > 0)
-                ? TorchModeStatus::AVAILABLE_ON : TorchModeStatus::AVAILABLE_OFF;
-            if (mStatus != newState) {
-                mStatus = newState;
-                mCallbacks->onTorchStatusChanged(cameraId, mStatus);
+        if (torchStrength > 0 && torchStrength <= getTorchMaxStrengthLevelExt()) {
+            if (supportsSetTorchModeExt()) {
+                // If we aren't using the Camera HAL to set the
+                // torch mode initially, we need to invoke
+                // the callback ourselves.
+                if (mStatus != TorchModeStatus::AVAILABLE_ON) {
+                    mStatus = TorchModeStatus::AVAILABLE_ON;
+                    mCallbacks->onTorchStatusChanged(cameraId, mStatus);
+                }
+            } else {
+                mProviderManager->setTorchMode(cameraId, true);
             }
-        } else {
-            mProviderManager->setTorchMode(cameraId, (torchStrength > 0));
-        }
 
-        setTorchStrengthLevelExt(torchStrength);
-        return OK;
+            setTorchStrengthLevelExt(torchStrength);
+            return OK;
+        } else {
+            return BAD_VALUE;
+        }
     } else {
         return mProviderManager->turnOnTorchWithStrengthLevel(cameraId, torchStrength);
     }

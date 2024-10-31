@@ -25,11 +25,13 @@ __attribute__((weak)) bool supportsSetTorchModeExt() {
 }
 
 __attribute__((weak)) int32_t getTorchDefaultStrengthLevelExt() {
-    return 0;
+    // Without extension, assume only one level of torch strength
+    return 1;
 }
 
 __attribute__((weak)) int32_t getTorchMaxStrengthLevelExt() {
-    return 0;
+    // Without extension, assume only one level of torch strength
+    return 1;
 }
 
 __attribute__((weak)) int32_t getTorchStrengthLevelExt() {
