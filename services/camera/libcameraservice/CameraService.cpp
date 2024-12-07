@@ -1364,7 +1364,7 @@ Status CameraService::getTorchStrengthLevel(const std::string& unresolvedCameraI
         return STATUS_ERROR(ERROR_ILLEGAL_ARGUMENT, "Strength level should not be null.");
     }
 
-    status_t res = mFlashlight->getTorchStrengthLevel(cameraId, torchStrength);
+    status_t res = mCameraProviderManager->getTorchStrengthLevel(cameraId, torchStrength);
     if (res != OK) {
         return STATUS_ERROR_FMT(ERROR_INVALID_OPERATION, "Unable to retrieve torch "
             "strength level for device %s: %s (%d)", cameraId.c_str(),
