@@ -29,7 +29,6 @@
 #include "camera/camera2/CaptureRequest.h"
 #include "device3/Camera3Device.h"
 
-#include "common/CameraProviderExtension.h"
 
 namespace android {
 
@@ -56,7 +55,7 @@ status_t CameraFlashlight::createFlashlightControl(const std::string& cameraId) 
     }
 
     if (mProviderManager->supportSetTorchMode(cameraId)) {
-        mFlashControl = new ProviderFlashControl(mProviderManager, mCallbacks);
+        mFlashControl = new ProviderFlashControl(mProviderManager);
     } else {
         ALOGE("Flashlight control not supported by this device!");
         return NO_INIT;
@@ -261,7 +260,7 @@ status_t CameraFlashlight::prepareDeviceOpen(const std::string& cameraId) {
         return NO_INIT;
     }
 
-    if (supportsSetTorchModeExt() || isBackwardCompatibleMode(cameraId)) {
+    if (isBackwardCompatibleMode(cameraId)) {
         // framework is going to open a camera device, all flash light control
         // should be closed for backward compatible support.
         mFlashControl.clear();
@@ -272,11 +271,6 @@ status_t CameraFlashlight::prepareDeviceOpen(const std::string& cameraId) {
             int numCameras = static_cast<int>(ids.size());
             for (int i = 0; i < numCameras; i++) {
                 if (hasFlashUnitLocked(ids[i])) {
-                    // Turn off torch before opening
-                    // camera device.
-                    if (supportsSetTorchModeExt()) {
-                        setTorchModeExt(false);
-                    }
                     mCallbacks->onTorchStatusChanged(
                             ids[i], TorchModeStatus::NOT_AVAILABLE);
                 }
@@ -316,7 +310,7 @@ status_t CameraFlashlight::deviceClosed(const std::string& cameraId) {
     if (mOpenedCameraIds.size() != 0)
         return OK;
 
-    if (supportsSetTorchModeExt() || isBackwardCompatibleMode(cameraId)) {
+    if (isBackwardCompatibleMode(cameraId)) {
         // notify torch available for all cameras with a flash
         std::vector<std::string> ids = mProviderManager->getCameraDeviceIds();
         int numCameras = static_cast<int>(ids.size());
@@ -340,10 +334,8 @@ FlashControlBase::~FlashControlBase() {
 // ModuleFlashControl implementation begins
 // Flash control for camera module v2.4 and above.
 /////////////////////////////////////////////////////////////////////
-ProviderFlashControl::ProviderFlashControl(sp<CameraProviderManager> providerManager,
-        CameraProviderManager::StatusListener* callbacks) :
-        mProviderManager(providerManager),
-        mCallbacks(callbacks) {
+ProviderFlashControl::ProviderFlashControl(sp<CameraProviderManager> providerManager) :
+        mProviderManager(providerManager) {
 }
 
 ProviderFlashControl::~ProviderFlashControl() {
@@ -361,16 +353,7 @@ status_t ProviderFlashControl::setTorchMode(const std::string& cameraId, bool en
     ALOGV("%s: set camera %s torch mode to %d", __FUNCTION__,
             cameraId.c_str(), enabled);
 
-    // Use the extension only for the camera that has flash unit
-    // Otherwise fallback to the default impl.
-    if (supportsSetTorchModeExt() && mProviderManager->hasFlashUnit(cameraId)) {
-        mStatus = enabled ? TorchModeStatus::AVAILABLE_ON : TorchModeStatus::AVAILABLE_OFF;
-        setTorchModeExt(enabled);
-        mCallbacks->onTorchStatusChanged(cameraId, mStatus);
-        return OK;
-    } else {
-        return mProviderManager->setTorchMode(cameraId, enabled);
-    }
+    return mProviderManager->setTorchMode(cameraId, enabled);
 }
 
 status_t ProviderFlashControl::turnOnTorchWithStrengthLevel(const std::string& cameraId,
@@ -378,28 +361,7 @@ status_t ProviderFlashControl::turnOnTorchWithStrengthLevel(const std::string& c
     ALOGV("%s: change torch strength level of camera %s to %d", __FUNCTION__,
             cameraId.c_str(), torchStrength);
 
-    // Use the extension only for the camera that has flash unit
-    // Otherwise fallback to the default impl.
-    if (supportsTorchStrengthControlExt() && mProviderManager->hasFlashUnit(cameraId)) {
-        if (supportsSetTorchModeExt()) {
-            // If we aren't using the Camera HAL to set the
-            // torch mode initially, we need to invoke
-            // the callback ourselves.
-            TorchModeStatus newState = (torchStrength > 0)
-                ? TorchModeStatus::AVAILABLE_ON : TorchModeStatus::AVAILABLE_OFF;
-            if (mStatus != newState) {
-                mStatus = newState;
-                mCallbacks->onTorchStatusChanged(cameraId, mStatus);
-            }
-        } else {
-            mProviderManager->setTorchMode(cameraId, (torchStrength > 0));
-        }
-
-        setTorchStrengthLevelExt(torchStrength);
-        return OK;
-    } else {
-        return mProviderManager->turnOnTorchWithStrengthLevel(cameraId, torchStrength);
-    }
+    return mProviderManager->turnOnTorchWithStrengthLevel(cameraId, torchStrength);
 }
 
 status_t ProviderFlashControl::getTorchStrengthLevel(const std::string& cameraId,
@@ -407,15 +369,7 @@ status_t ProviderFlashControl::getTorchStrengthLevel(const std::string& cameraId
     ALOGV("%s: get torch strength level of camera %s", __FUNCTION__,
             cameraId.c_str());
 
-    // Use the extension only for the camera that has flash unit
-    // Otherwise fallback to the default impl.
-    if (supportsTorchStrengthControlExt() && mProviderManager->hasFlashUnit(cameraId)) {
-        int32_t strength = getTorchStrengthLevelExt();
-        *torchStrength = strength;
-        return OK;
-    } else {
-        return mProviderManager->getTorchStrengthLevel(cameraId, torchStrength);
-    }
+    return mProviderManager->getTorchStrengthLevel(cameraId, torchStrength);
 }
 // ProviderFlashControl implementation ends
 

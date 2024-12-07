@@ -556,7 +556,15 @@ status_t CameraProviderManager::getTorchStrengthLevel(const std::string &id,
     auto deviceInfo = findDeviceInfoLocked(id);
     if (deviceInfo == nullptr) return NAME_NOT_FOUND;
 
-    return deviceInfo->getTorchStrengthLevel(torchStrength);
+    // Use the extension only for the camera that has flash unit
+    // Otherwise fallback to the default impl.
+    if (deviceInfo->hasFlashUnit() && supportsTorchStrengthControlExt()) {
+        int32_t strength = getTorchStrengthLevelExt();
+        *torchStrength = strength;
+        return OK;
+    } else {
+        return deviceInfo->getTorchStrengthLevel(torchStrength);
+    }
 }
 
 status_t CameraProviderManager::turnOnTorchWithStrengthLevel(const std::string &id,
@@ -566,13 +574,21 @@ status_t CameraProviderManager::turnOnTorchWithStrengthLevel(const std::string &
     auto deviceInfo = findDeviceInfoLocked(id);
     if (deviceInfo == nullptr) return NAME_NOT_FOUND;
 
-    return deviceInfo->turnOnTorchWithStrengthLevel(torchStrength);
+    // Use the extension only for the camera that has flash unit
+    // Otherwise fallback to the default impl.
+    if (deviceInfo->hasFlashUnit() && supportsTorchStrengthControlExt()) {
+        // Turn on the torch if level > 0.
+        deviceInfo->setTorchMode(torchStrength > 0);
+        setTorchStrengthLevelExt(torchStrength);
+        return OK;
+    } else {
+        return deviceInfo->turnOnTorchWithStrengthLevel(torchStrength);
+    }
 }
 
 bool CameraProviderManager::shouldSkipTorchStrengthUpdate(const std::string &id,
         int32_t torchStrength) const {
     std::lock_guard<std::mutex> lock(mInterfaceMutex);
-    bool shouldSkip = false;
 
     auto deviceInfo = findDeviceInfoLocked(id);
     if (deviceInfo == nullptr) return NAME_NOT_FOUND;
@@ -580,13 +596,9 @@ bool CameraProviderManager::shouldSkipTorchStrengthUpdate(const std::string &id,
     if (deviceInfo->mTorchStrengthLevel == torchStrength) {
         ALOGV("%s: Skipping torch strength level updates prev_level: %d, new_level: %d",
                 __FUNCTION__, deviceInfo->mTorchStrengthLevel, torchStrength);
-        shouldSkip = true;
+        return true;
     }
-
-    if (supportsTorchStrengthControlExt() && deviceInfo->hasFlashUnit()) {
-        deviceInfo->mTorchStrengthLevel = torchStrength;
-    }
-    return shouldSkip;
+    return false;
 }
 
 int32_t CameraProviderManager::getTorchDefaultStrengthLevel(const std::string &id) const {
@@ -595,7 +607,13 @@ int32_t CameraProviderManager::getTorchDefaultStrengthLevel(const std::string &i
     auto deviceInfo = findDeviceInfoLocked(id);
     if (deviceInfo == nullptr) return NAME_NOT_FOUND;
 
-    return deviceInfo->mTorchDefaultStrengthLevel;
+    // Use the extension only for the camera that has flash unit
+    // Otherwise fallback to the default impl.
+    if (deviceInfo->hasFlashUnit() && supportsTorchStrengthControlExt()) {
+        return getTorchDefaultStrengthLevelExt();
+    } else {
+        return deviceInfo->mTorchDefaultStrengthLevel;
+    }
 }
 
 bool CameraProviderManager::supportSetTorchMode(const std::string &id) const {

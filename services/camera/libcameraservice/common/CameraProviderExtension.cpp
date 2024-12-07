@@ -22,10 +22,6 @@ bool supportsTorchStrengthControlExt() {
     return false;
 }
 
-bool supportsSetTorchModeExt() {
-    return false;
-}
-
 int32_t getTorchDefaultStrengthLevelExt() {
     return 0;
 }
@@ -39,10 +35,6 @@ int32_t getTorchStrengthLevelExt() {
 }
 
 void setTorchStrengthLevelExt(__unused int32_t torchStrength) {
-    // Nothing
-}
-
-void setTorchModeExt(__unused bool enabled) {
     // Nothing
 }
 
