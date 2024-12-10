@@ -137,15 +137,18 @@ std::optional<AttributionSourceState> resolveAttributionSource(
 
     const int32_t attributedOpCode = getOpForSource(source);
 
+    auto permission = source == AUDIO_SOURCE_REMOTE_SUBMIX ?
+            sModifyAudioRouting : sAndroidPermissionRecordAudio;
+
     permission::PermissionChecker permissionChecker;
     bool permitted = false;
     if (start) {
         permitted = (permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
-                sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
+                permission, resolvedAttributionSource.value(), msg,
                 attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
     } else {
         permitted = (permissionChecker.checkPermissionForPreflightFromDatasource(
-                sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
+                permission, resolvedAttributionSource.value(), msg,
                 attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
     }
 
