@@ -41,10 +41,6 @@
 
 namespace android {
 
-namespace {
-constexpr auto PERMISSION_HARD_DENIED = permission::PermissionChecker::PERMISSION_HARD_DENIED;
-}
-
 using content::AttributionSourceState;
 
 static const String16 sAndroidPermissionRecordAudio("android.permission.RECORD_AUDIO");
@@ -119,7 +115,7 @@ std::optional<AttributionSourceState> resolveAttributionSource(
     return std::optional<AttributionSourceState>{myAttributionSource};
 }
 
-    static int checkRecordingInternal(const AttributionSourceState &attributionSource,
+    static bool checkRecordingInternal(const AttributionSourceState &attributionSource,
                                        const uint32_t virtualDeviceId,
                                        const String16 &msg, bool start, audio_source_t source) {
     // Okay to not track in app ops as audio server or media server is us and if
@@ -142,15 +138,15 @@ std::optional<AttributionSourceState> resolveAttributionSource(
     const int32_t attributedOpCode = getOpForSource(source);
 
     permission::PermissionChecker permissionChecker;
-    int permitted;
+    bool permitted = false;
     if (start) {
-        permitted = permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
+        permitted = (permissionChecker.checkPermissionForStartDataDeliveryFromDatasource(
                 sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
-                attributedOpCode);
+                attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
     } else {
-        permitted = permissionChecker.checkPermissionForPreflightFromDatasource(
+        permitted = (permissionChecker.checkPermissionForPreflightFromDatasource(
                 sAndroidPermissionRecordAudio, resolvedAttributionSource.value(), msg,
-                attributedOpCode);
+                attributedOpCode) != permission::PermissionChecker::PERMISSION_HARD_DENIED);
     }
 
     return permitted;
@@ -160,17 +156,17 @@ static constexpr int DEVICE_ID_DEFAULT = 0;
 
 bool recordingAllowed(const AttributionSourceState &attributionSource, audio_source_t source) {
     return checkRecordingInternal(attributionSource, DEVICE_ID_DEFAULT, String16(), /*start*/ false,
-                                  source) != PERMISSION_HARD_DENIED;
+                                  source);
 }
 
 bool recordingAllowed(const AttributionSourceState &attributionSource,
                       const uint32_t virtualDeviceId,
                       audio_source_t source) {
     return checkRecordingInternal(attributionSource, virtualDeviceId,
-                                  String16(), /*start*/ false, source) != PERMISSION_HARD_DENIED;
+                                  String16(), /*start*/ false, source);
 }
 
-int startRecording(const AttributionSourceState& attributionSource,
+bool startRecording(const AttributionSourceState& attributionSource,
                     const uint32_t virtualDeviceId,
                     const String16& msg,
                     audio_source_t source) {
